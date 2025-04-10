@@ -1,83 +1,83 @@
 # Whisp 🌐
 
-*A minimal, thread-safe real-time chat server and client written in C99.*
+*Um servidor e cliente de chat em tempo real, minimalista e thread-safe, escrito em C99.*
 
-## Description
+## Descrição
 
-Whisp is a local-network group chat system where users can:
+Whisp é um sistema de chat em grupo para redes locais onde os usuários podem:
 
-- Register/login.
-- Create, join, leave, or delete chat groups.
-- Send real-time messages.
+- Registrar/login.
+- Criar, entrar, sair ou deletar grupos de chat.
+- Enviar mensagens em tempo real.
 
-Built with C99, pthreads and SQLite3 for simplicity and performance.
+Construído com C99, pthreads e SQLite3 para simplicidade e desempenho.
 
-## Features
+## Funcionalidades
 
-- Auth System
-    - Password storage.
-    - Username uniqueness enforcement.
+- Sistema de Autenticação
+    - Armazenamento de senhas.
+    - Garantia de unicidade de nomes de usuário.
 
-- Group Chats
-    - Create/delete groups (creator privileges).
-    - Dynamic join/leave with broadcast notifications.
+- Chats em Grupo
+    - Criar/deletar grupos (privilégios do criador).
+    - Entrada/saída dinâmica com notificações por broadcast.
 
-- Concurrency
-    - Thread-per-client model.
-    - Mutex-protected shared data (groups, user lists).
+- Concorrência
+    - Modelo de uma thread por cliente.
+    - Dados compartilhados protegidos por mutex (grupos, lista de usuários).
 
-- No Dependencies
-    - Pure C99 and SQLite3 (embedded).
+- Sem Dependências
+    - Puro C99 e SQLite3 (embutido).
 
-## Usage
+## Uso
 
-### 1. Build
+### 1. Compilar
 
 ```sh
-# Clone and build (requires SQLite3)
+# Clonar e compilar (requer SQLite3)
 git clone https://github.com/derivia/whisp
 cd whisp
-make           # Builds server + client
+make           # Compila servidor + cliente
 ```
 
-### 2. Run the Server
+### 2. Servidor
 
 ```sh
-./whisp_server  # Listens on port 6969 by default
+./whisp_server  # Escuta na porta 6969 por padrão
 ```
 
-### 3. Run Clients
+### 3. Clientes
 
 ```sh
-./whisp_client <server_ip> [port] # Connects to the server
+./whisp_client <ip_servidor> [porta] # Conecta ao servidor
 ```
 
-Client commands:
-- `register <user> <pass>`
-- `login <user> <pass>`
-- `create <group>`
-- `enter <group>`
-- `leave <group>`
-- `delete <group>`
+Comandos do cliente:
+- `register <usuario> <senha>`
+- `login <usuario> <senha>`
+- `create <grupo>`
+- `enter <grupo>`
+- `leave <grupo>`
+- `delete <grupo>`
 
-## Technical Design
+## Projeto Técnico
 
-### Server
+### Servidor
 
-- Thread Pool: Handles clients concurrently.
-- Mutexes: Protect `groups_db` and `active_users`.
-- SQLite: Stores `(username, password)` pairs.
+- Pool de Threads: Gerencia clientes simultaneamente.
+- Mutexes: Protegem `groups_db` e `active_users`.
+- SQLite: Armazena pares `(username, password)`.
 
-### Client
+### Cliente
 
-- Non-blocking I/O (threads).
-- Auto-reconnects on failure.
+- I/O não bloqueante (threads).
+- Reconexão automática em caso de falha.
 
-## Limitations
+## Limitações
 
-- No message history (ephemeral chats).
-- No encryption (for now; local network only).
+- Sem histórico de mensagens (chats efêmeros).
+- Sem criptografia (por enquanto; apenas rede local).
 
-## License
+## Licença
 
 [MIT](./LICENSE)
