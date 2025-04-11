@@ -3,6 +3,12 @@
 #include "../../include/network.h"
 #include <time.h>
 
+/**
+ * @brief Inicializa o gerenciamento dos grupos, cada grupo iniciando com zero
+ ombros e tendo seus mutexes inicializados.
+ *
+ * @param gm GroupManager
+ */
 void init_group_manager(GroupManager *gm)
 {
   gm->group_count = 0;
@@ -20,6 +26,18 @@ void init_client_manager(ClientManager *cm)
   pthread_mutex_init(&cm->mutex, NULL);
 }
 
+/**
+ * @brief Cria um grupo, com no mínimo três caracteres no nome, uma senha e um
+ * criador.
+ *
+ * Basicamente cuida do estado do mutex do group manager.
+ *
+ * @param gm
+ * @param name
+ * @param password
+ * @param creator
+ * @return
+ */
 bool create_group(GroupManager *gm, const char *name, const char *password,
                   const char *creator)
 {
@@ -55,6 +73,16 @@ bool create_group(GroupManager *gm, const char *name, const char *password,
   return true;
 }
 
+/**
+ * @brief Remove um grupo caso o usuário que solicitou seja o criador.
+ * Faz verificação do nome e da autoria. Se o grupo for deletado, realoca
+ * os grupos seguintes no array.
+ *
+ * @param gm Gerenciador de grupos
+ * @param name Nome do grupo
+ * @param username Nome do usuário solicitante
+ * @return true se removido com sucesso, false caso contrário
+ */
 bool delete_group(GroupManager *gm, const char *name, const char *username)
 {
   pthread_mutex_lock(&gm->mutex);
@@ -80,6 +108,13 @@ bool delete_group(GroupManager *gm, const char *name, const char *username)
   return false;
 }
 
+/**
+ * @brief Busca linearmente por um grupo na lista de grupos existentes.
+ *
+ * @param gm
+ * @param name
+ * @return Group se encontrado, NULL se não.
+ */
 Group *find_group(GroupManager *gm, const char *name)
 {
   pthread_mutex_lock(&gm->mutex);
@@ -95,6 +130,13 @@ Group *find_group(GroupManager *gm, const char *name)
   return NULL;
 }
 
+/**
+ * @brief Compara a senha do grupo com a senha que o usuário tentou para
+ * entrar.
+ *
+ * @param group
+ * @param password
+ */
 bool verify_group_password(Group *group, const char *password)
 {
   if (!group) return false;
@@ -106,6 +148,17 @@ bool verify_group_password(Group *group, const char *password)
   return result;
 }
 
+/**
+ * @brief Lida com a tentativa de entrar num grupo.
+ * Se o grupo não existir, retorna false.
+ * Se o usuário já está no grupo, retorna true.
+ * Se o grupo já estiver com o máximo de usuários, retorna false.
+ * Altera o grupo atual do usuário que tentou entrar caso ele entre.
+ * @param gm
+ * @param group
+ * @param user
+ * @return
+ */
 bool join_group(GroupManager *gm, Group *group, User *user)
 {
   if (!group) return false;
@@ -132,6 +185,16 @@ bool join_group(GroupManager *gm, Group *group, User *user)
   return true;
 }
 
+/**
+ * @brief Lida com a tentativa de sair de um grupo.
+ * Verifica se o grupo existe, se o usuário está no grupo, move os usuários
+ * que não são o usuário atual para trás, mantendo o array inteiro.
+ *
+ * @param gm
+ * @param group
+ * @param user
+ * @return
+ */
 bool leave_group(GroupManager *gm, Group *group, User *user)
 {
   if (!group) return false;
@@ -162,11 +225,23 @@ bool leave_group(GroupManager *gm, Group *group, User *user)
   return true;
 }
 
+/**
+ * @brief Adiciona um tipo `time` (tempo atual) à mensagem.
+ *
+ * @param msg
+ */
 void add_timestamp_to_message(Message *msg)
 {
   msg->timestamp = time(NULL);
 }
 
+/**
+ * @brief Formata a mensagem com o termo atual.
+ *
+ * @param buffer
+ * @param size
+ * @param msg
+ */
 void format_message_with_time(char *buffer, size_t size, const Message *msg)
 {
   struct tm *time_info = localtime(&msg->timestamp);
@@ -176,6 +251,15 @@ void format_message_with_time(char *buffer, size_t size, const Message *msg)
   snprintf(buffer, size, "[%s]: %s", time_str, msg->message);
 }
 
+/**
+ * @brief Repete a mensagem recebida por um usuário para todos os usuários que
+ * não são o usuário que enviou a mensagem em um grupo.
+ *
+ * Utiliza `send_message` para cada cliente, ignorando o `exclude_sockfd`.
+ * @param group
+ * @param original_msg
+ * @param exclude_sockfd
+ */
 void broadcast_to_group(Group *group, const Message *original_msg,
                         int exclude_sockfd)
 {
@@ -202,6 +286,16 @@ void broadcast_to_group(Group *group, const Message *original_msg,
   pthread_mutex_unlock(&group->mutex);
 }
 
+/**
+ * @brief Adiciona um novo cliente autenticado ao gerenciador.
+ *
+ * Atribui nome, socket e zera `current_group`.
+ *
+ * @param cm Gerenciador de clientes
+ * @param username Nome do cliente
+ * @param sockfd Socket do cliente
+ * @return Ponteiro para o novo usuário, ou NULL se cheio
+ */
 User *add_client(ClientManager *cm, const char *username, int sockfd)
 {
   pthread_mutex_lock(&cm->mutex);
@@ -222,6 +316,13 @@ User *add_client(ClientManager *cm, const char *username, int sockfd)
   return user;
 }
 
+/**
+ * @brief Remove um cliente com base no socket.
+ * Realoca os clientes seguintes no array.
+ *
+ * @param cm Gerenciador de clientes
+ * @param sockfd Socket do cliente a ser removido
+ */
 void remove_client(ClientManager *cm, int sockfd)
 {
   pthread_mutex_lock(&cm->mutex);
@@ -244,6 +345,13 @@ void remove_client(ClientManager *cm, int sockfd)
   pthread_mutex_unlock(&cm->mutex);
 }
 
+/**
+ * @brief Busca um cliente pelo socket.
+ *
+ * @param cm Gerenciador de clientes
+ * @param sockfd Socket a ser buscado
+ * @return Ponteiro para o usuário, ou NULL se não encontrado
+ */
 User *find_client_by_sockfd(ClientManager *cm, int sockfd)
 {
   pthread_mutex_lock(&cm->mutex);
@@ -259,6 +367,13 @@ User *find_client_by_sockfd(ClientManager *cm, int sockfd)
   return NULL;
 }
 
+/**
+ * @brief Busca um cliente pelo nome de usuário.
+ *
+ * @param cm Gerenciador de clientes
+ * @param username Nome de usuário a ser buscado
+ * @return Ponteiro para o usuário, ou NULL se não encontrado
+ */
 User *find_client_by_username(ClientManager *cm, const char *username)
 {
   pthread_mutex_lock(&cm->mutex);

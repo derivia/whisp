@@ -11,6 +11,14 @@ typedef struct {
   int sockfd;
 } ClientArgs;
 
+/**
+ * @brief Processa uma solicitação de registro, tentando cadastrar o usuário no
+ * banco de dados. Responde ao cliente com sucesso ou erro, dependendo da
+ * disponibilidade do nome de usuário.
+ *
+ * @param sockfd
+ * @param msg
+ */
 void handle_register(int sockfd, const Message *msg)
 {
   Message response;
@@ -30,6 +38,13 @@ void handle_register(int sockfd, const Message *msg)
   send_message(sockfd, &response);
 }
 
+/**
+ * @brief Autentica um usuário com base nas credenciais fornecidas.
+ * Verifica se já está logado e adiciona ao gerenciador de clientes se válido.
+ *
+ * @param sockfd
+ * @param msg
+ */
 void handle_login(int sockfd, const Message *msg)
 {
   Message response;
@@ -61,6 +76,14 @@ void handle_login(int sockfd, const Message *msg)
   send_message(sockfd, &response);
 }
 
+/**
+ * @brief Cria um novo grupo com nome, senha e criador, se o usuário estiver
+ * autenticado. Responde com sucesso ou falha dependendo da existência ou
+ * limite de grupos.
+ *
+ * @param sockfd
+ * @param msg
+ */
 void handle_create_group(int sockfd, const Message *msg)
 {
   Message response;
@@ -86,6 +109,14 @@ void handle_create_group(int sockfd, const Message *msg)
   send_message(sockfd, &response);
 }
 
+/**
+ * @brief Permite que um usuário autenticado entre em um grupo existente.
+ * Verifica senha, remove de grupo anterior se necessário, e envia notificação
+ * aos membros.
+ *
+ * @param sockfd
+ * @param msg
+ */
 void handle_enter_group(int sockfd, const Message *msg)
 {
   Message response;
@@ -217,6 +248,14 @@ void handle_delete_group(int sockfd, const Message *msg)
   send_message(sockfd, &response);
 }
 
+/**
+ * @brief Encaminha uma mensagem de chat do usuário autenticado para todos os
+ * membros do grupo. Verifica se o usuário está em um grupo antes de
+ * retransmitir.
+ *
+ * @param sockfd
+ * @param msg
+ */
 void handle_message(int sockfd, const Message *msg)
 {
   User *user = find_client_by_sockfd(&client_manager, sockfd);
@@ -248,6 +287,14 @@ void handle_message(int sockfd, const Message *msg)
   broadcast_to_group(group, &chat_msg, sockfd);
 }
 
+/**
+ * @brief Identifica o tipo de comando recebido do cliente e redireciona para a
+ * função correspondente. Usa uma estrutura switch baseada no tipo da mensagem.
+ *
+ * Um switch até que bonitinho, dá orgulho.
+ * @param sockfd
+ * @param msg
+ */
 void handle_client_message(int sockfd, const Message *msg)
 {
   switch (msg->type) {
@@ -280,6 +327,13 @@ void handle_client_message(int sockfd, const Message *msg)
   }
 }
 
+/**
+ * @brief Loop da thread do cliente no servidor.
+ * Recebe mensagens continuamente, trata comandos e limpa recursos na
+ * desconexão.
+ *
+ * @param arg
+ */
 void *client_handler(void *arg)
 {
   ClientArgs *client_args = (ClientArgs *)arg;

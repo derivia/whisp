@@ -34,6 +34,14 @@ typedef struct {
   GroupCommandWithPassword enter_group_cmd;
 } CommandHandlers;
 
+/**
+ * @brief Analisa a entrada do usuário e executa o comando apropriado através
+ * dos handlers.
+ * É um bagulho feio e bonito.
+ *
+ * @param input
+ * @param handlers
+ */
 void parse_command(char *input, CommandHandlers *handlers)
 {
   if (strncmp(input, "register ", 9) == 0) {

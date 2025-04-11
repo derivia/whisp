@@ -1,7 +1,6 @@
 #include "../../include/chat.h"
 #include "../../include/common.h"
 #include "../../include/db.h"
-#include "../../include/network.h"
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <sys/select.h>
@@ -15,6 +14,10 @@ typedef struct {
   int sockfd;
 } ClientArgs;
 
+/**
+ * @brief Uma variável "booleana" para marcar se o servidor está rodando ou
+ * não, atômica e volátil para ser alterada apenas por signals.
+ */
 volatile sig_atomic_t server_running = 1;
 
 void handle_signal(int sig)
@@ -24,6 +27,11 @@ void handle_signal(int sig)
   printf("\n[SERVER] Shutting down...\n");
 }
 
+/**
+ * @brief Busca pelo ip da rede local e o retorna.
+ *
+ * @return String do IP atual.
+ */
 char *get_local_ip()
 {
   struct ifaddrs *ifaddr, *ifa;
@@ -48,6 +56,13 @@ char *get_local_ip()
   return host;
 }
 
+/**
+ * @brief Configura o servidor com um ip e porta especificos.
+ *
+ * @param port
+ * @param ip_addr
+ * @return File descriptor para o socket do servidor.
+ */
 int setup_server_with_ip(int port, const char *ip_addr)
 {
   int server_fd;
@@ -91,8 +106,13 @@ int setup_server_with_ip(int port, const char *ip_addr)
 int main(int argc, char *argv[])
 {
   int port = DEFAULT_PORT;
+
+  // Aceita uma porta caso o usuário passe, vai saber né.
   if (argc > 1) port = atoi(argv[1]);
 
+  // Faz com que o programa capture os SIGINTs de combinações de teclas como
+  // Ctrl-C, para que o server faça um espécie de graceful shutdown (ou apenas
+  // pare de falhar a saída como estava acontecendo).
   signal(SIGPIPE, SIG_IGN);
   signal(SIGINT, handle_signal);
 
@@ -101,9 +121,17 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  // O servidor utiliza dois "managers", um para clientes e um para grupos.
+  // Basicamente cada um tem um array com um tamanho MAX (quantos grupos pode
+  // haver ao mesmo tempo) Quantos usuários e grupos atualmente existem e um
+  // mutex para uso de locks na escrita dos dois outros elementos (contagem e
+  // array).
   init_client_manager(&client_manager);
   init_group_manager(&group_manager);
 
+  // Procura o IP atual, para hospedar localmente apenas.
+  // (Tava tendo alguns problemas com as portas no Linux, acabou que era
+  // burrice minha mesmo).
   char *local_ip = get_local_ip();
   if (!local_ip || strlen(local_ip) == 0) {
     fprintf(stderr, "Failed to get local IP address\n");
@@ -113,6 +141,10 @@ int main(int argc, char *argv[])
   int server_fd = setup_server_with_ip(port, local_ip);
   printf("Whisp server started on %s:%d\n", local_ip, port);
 
+  // Inicializa um file descriptor para o select e um timeval
+  // O file descriptor é usado para verificar se há alguma escrita atualmente
+  // E o timeval é usado para definir de quanto em quanto tempo a verificação
+  // acontece.
   fd_set read_fds;
   struct timeval timeout;
 
@@ -160,6 +192,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  // Tenta uma espécie de graceful shutdown.
   close(server_fd);
   close_database(&database);
   printf("[SERVER] Shutdown complete.\n");

@@ -3,6 +3,13 @@
 extern volatile bool running;
 extern int client_fd;
 
+/**
+ * @brief Thread responsável por receber mensagens do servidor e exibir na
+ * tela. Filtra mensagens por tipo (sucesso, erro, notificação, chat) e imprime
+ * com cores.
+ *
+ * @param arg
+ */
 void *receive_handler(void *arg)
 {
   int sockfd = *(int *)arg;

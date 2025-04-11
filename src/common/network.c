@@ -1,5 +1,10 @@
 #include "../../include/network.h"
 
+/**
+ * @brief Cria um socket TCP reutilizável para comunicação.
+ *
+ * @return O socket criado
+ */
 int create_socket(void)
 {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -31,6 +36,13 @@ int connect_to_server(const char *address, int port)
   return sockfd;
 }
 
+/**
+ * @brief Configura um socket TCP para escuta em todas as interfaces na porta
+ * especificada.
+ *
+ * @param port
+ * @return
+ */
 int setup_server(int port)
 {
   int sockfd = create_socket();
@@ -49,11 +61,25 @@ int setup_server(int port)
   return sockfd;
 }
 
+/**
+ * @brief Envia uma struct Message pelo socket usando envio binário direto.
+ *
+ * @param sockfd
+ * @param msg
+ */
 void send_message(int sockfd, const Message *msg)
 {
   if (send(sockfd, msg, sizeof(Message), 0) < 0) error_exit("send failed");
 }
 
+/**
+ * @brief Recebe dados do socket e preenche uma struct Message; trata não
+ * bloqueio e erro.
+ *
+ * @param sockfd
+ * @param msg
+ * @return
+ */
 int receive_message(int sockfd, Message *msg)
 {
   int n = recv(sockfd, msg, sizeof(Message), 0);
