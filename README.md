@@ -55,8 +55,8 @@ make           # Compila servidor + cliente
 Comandos do cliente:
 - `register <usuario> <senha>`
 - `login <usuario> <senha>`
-- `create <grupo>`
-- `enter <grupo>`
+- `create <grupo> <senha>`
+- `enter <grupo> <senha>`
 - `leave <grupo>`
 - `delete <grupo>`
 
