@@ -1,5 +1,7 @@
 #include "../../include/chat.h"
+#include "../../include/common.h"
 #include "../../include/network.h"
+#include <time.h>
 
 void init_group_manager(GroupManager *gm)
 {
@@ -18,7 +20,8 @@ void init_client_manager(ClientManager *cm)
   pthread_mutex_init(&cm->mutex, NULL);
 }
 
-bool create_group(GroupManager *gm, const char *name, const char *creator)
+bool create_group(GroupManager *gm, const char *name, const char *password,
+                  const char *creator)
 {
   if (strlen(name) < 3) return false;
 
@@ -39,6 +42,9 @@ bool create_group(GroupManager *gm, const char *name, const char *creator)
   Group *new_group = &gm->groups[gm->group_count++];
   strncpy(new_group->name, name, MAX_GROUPNAME - 1);
   new_group->name[MAX_GROUPNAME - 1] = '\0';
+
+  strncpy(new_group->password, password, MAX_PASSWORD - 1);
+  new_group->password[MAX_PASSWORD - 1] = '\0';
 
   strncpy(new_group->creator, creator, MAX_USERNAME - 1);
   new_group->creator[MAX_USERNAME - 1] = '\0';
@@ -87,6 +93,17 @@ Group *find_group(GroupManager *gm, const char *name)
 
   pthread_mutex_unlock(&gm->mutex);
   return NULL;
+}
+
+bool verify_group_password(Group *group, const char *password)
+{
+  if (!group) return false;
+
+  pthread_mutex_lock(&group->mutex);
+  bool result = (strcmp(group->password, password) == 0);
+  pthread_mutex_unlock(&group->mutex);
+
+  return result;
 }
 
 bool join_group(GroupManager *gm, Group *group, User *user)
@@ -145,15 +162,40 @@ bool leave_group(GroupManager *gm, Group *group, User *user)
   return true;
 }
 
-void broadcast_to_group(Group *group, const Message *msg, int exclude_sockfd)
+void add_timestamp_to_message(Message *msg)
+{
+  msg->timestamp = time(NULL);
+}
+
+void format_message_with_time(char *buffer, size_t size, const Message *msg)
+{
+  struct tm *time_info = localtime(&msg->timestamp);
+  char time_str[9];
+  strftime(time_str, sizeof(time_str), "%H:%M:%S", time_info);
+
+  snprintf(buffer, size, "[%s]: %s", time_str, msg->message);
+}
+
+void broadcast_to_group(Group *group, const Message *original_msg,
+                        int exclude_sockfd)
 {
   if (!group) return;
 
   pthread_mutex_lock(&group->mutex);
 
+  Message msg_with_time = *original_msg;
+  add_timestamp_to_message(&msg_with_time);
+
+  char formatted_msg[MAX_MESSAGE];
+  format_message_with_time(formatted_msg, sizeof(formatted_msg),
+                           &msg_with_time);
+
+  strncpy(msg_with_time.message, formatted_msg, MAX_CONTENT_SIZE - 1);
+  msg_with_time.message[MAX_CONTENT_SIZE - 1] = '\0';
+
   for (int i = 0; i < group->member_count; i++) {
     if (group->members[i]->sockfd != exclude_sockfd) {
-      send_message(group->members[i]->sockfd, msg);
+      send_message(group->members[i]->sockfd, &msg_with_time);
     }
   }
 

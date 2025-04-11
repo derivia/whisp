@@ -74,7 +74,8 @@ void handle_create_group(int sockfd, const Message *msg)
     return;
   }
 
-  if (create_group(&group_manager, msg->groupname, user->username)) {
+  if (create_group(&group_manager, msg->groupname, msg->password,
+                   user->username)) {
     response.type = CMD_SUCCESS;
     strncpy(response.message, "Group created successfully", MAX_BUFFER - 1);
   } else {
@@ -107,6 +108,13 @@ void handle_enter_group(int sockfd, const Message *msg)
   if (!group) {
     response.type = CMD_ERROR;
     strncpy(response.message, "Group does not exist", MAX_BUFFER - 1);
+    send_message(sockfd, &response);
+    return;
+  }
+
+  if (!verify_group_password(group, msg->password)) {
+    response.type = CMD_ERROR;
+    strncpy(response.message, "Incorrect group password", MAX_BUFFER - 1);
     send_message(sockfd, &response);
     return;
   }

@@ -19,6 +19,8 @@
 
 #define DEFAULT_PORT  6969
 #define MAX_BUFFER    4096
+#define MAX_CONTENT_SIZE 4096
+#define MAX_MESSAGE 4096
 #define MAX_USERNAME  32
 #define MAX_PASSWORD  64
 #define MAX_GROUPNAME 32
@@ -45,6 +47,7 @@ typedef struct {
   char password[MAX_PASSWORD];
   char groupname[MAX_GROUPNAME];
   char message[MAX_BUFFER];
+  time_t timestamp;
 } Message;
 
 void error_exit(const char *message);

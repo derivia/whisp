@@ -4,6 +4,7 @@ typedef void (*RegisterLoginFunc)(const char *, const char *);
 typedef void (*GroupNameFunc)(const char *);
 typedef void (*SimpleFunc)(void);
 typedef void (*MessageFunc)(const char *);
+typedef void (*GroupCommandWithPassword)(const char *, const char *);
 
 void print_help()
 {
@@ -11,8 +12,8 @@ void print_help()
   printf("Available commands:\n");
   printf("  register <username> <password> - Create a new account\n");
   printf("  login <username> <password> - Log in to your account\n");
-  printf("  create <groupname> - Create a new chat group\n");
-  printf("  enter <groupname> - Join a chat group\n");
+  printf("  create <groupname> <password> - Create a new chat group\n");
+  printf("  enter <groupname> <password> - Join a chat group\n");
   printf("  leave - Leave current chat group\n");
   printf("  delete <groupname> - Delete a chat group (must be owner)\n");
   printf("  help - Show this help\n");
@@ -25,12 +26,12 @@ void print_help()
 typedef struct {
   RegisterLoginFunc register_cmd;
   RegisterLoginFunc login_cmd;
-  GroupNameFunc create_group_cmd;
-  GroupNameFunc enter_group_cmd;
   SimpleFunc leave_group_cmd;
   GroupNameFunc delete_group_cmd;
   SimpleFunc exit_cmd;
   MessageFunc chat_message_cmd;
+  GroupCommandWithPassword create_group_cmd;
+  GroupCommandWithPassword enter_group_cmd;
 } CommandHandlers;
 
 void parse_command(char *input, CommandHandlers *handlers)
@@ -54,20 +55,18 @@ void parse_command(char *input, CommandHandlers *handlers)
       printf("Usage: login <username> <password>\n");
     }
   } else if (strncmp(input, "create ", 7) == 0) {
-    char groupname[MAX_GROUPNAME];
-
-    if (sscanf(input + 7, "%s", groupname) == 1) {
-      handlers->create_group_cmd(groupname);
+    char groupname[MAX_GROUPNAME], password[MAX_PASSWORD];
+    if (sscanf(input + 7, "%s %s", groupname, password) == 2) {
+      handlers->create_group_cmd(groupname, password);
     } else {
-      printf("Usage: create <groupname>\n");
+      printf("Usage: create <groupname> <password>\n");
     }
   } else if (strncmp(input, "enter ", 6) == 0) {
-    char groupname[MAX_GROUPNAME];
-
-    if (sscanf(input + 6, "%s", groupname) == 1) {
-      handlers->enter_group_cmd(groupname);
+    char groupname[MAX_GROUPNAME], password[MAX_PASSWORD];
+    if (sscanf(input + 6, "%s %s", groupname, password) == 2) {
+      handlers->enter_group_cmd(groupname, password);
     } else {
-      printf("Usage: enter <groupname>\n");
+      printf("Usage: enter <groupname> <password>\n");
     }
   } else if (strcmp(input, "leave") == 0) {
     handlers->leave_group_cmd();

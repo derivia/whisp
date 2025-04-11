@@ -70,24 +70,26 @@ void send_logout_command()
   send_message(client_fd, &msg);
 }
 
-void send_create_group_command(const char *groupname)
+void send_create_group_command(const char *groupname, const char *password)
 {
   Message msg;
   memset(&msg, 0, sizeof(Message));
 
   msg.type = CMD_CREATE;
   strncpy(msg.groupname, groupname, MAX_GROUPNAME - 1);
+  strncpy(msg.password, password, MAX_PASSWORD - 1);
 
   send_message(client_fd, &msg);
 }
 
-void send_enter_group_command(const char *groupname)
+void send_enter_group_command(const char *groupname, const char *password)
 {
   Message msg;
   memset(&msg, 0, sizeof(Message));
 
   msg.type = CMD_ENTER;
   strncpy(msg.groupname, groupname, MAX_GROUPNAME - 1);
+  strncpy(msg.password, password, MAX_PASSWORD - 1);
 
   send_message(client_fd, &msg);
 }
