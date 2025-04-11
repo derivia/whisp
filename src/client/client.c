@@ -1,4 +1,5 @@
 #include "../../include/common.h"
+#include "../../include/handlers.h"
 #include "../../include/network.h"
 
 volatile bool running = true;
@@ -15,24 +16,13 @@ void send_enter_group_command(const char *groupname, const char *password);
 void send_leave_group_command();
 void send_delete_group_command(const char *groupname);
 void send_chat_message(const char *message);
-
 void print_help();
-
-typedef void (*GroupCommandWithPassword)(const char *, const char *);
-
-typedef struct {
-  void (*register_cmd)(const char *, const char *);
-  void (*login_cmd)(const char *, const char *);
-  void (*leave_group_cmd)(void);
-  void (*delete_group_cmd)(const char *);
-  void (*exit_cmd)(void);
-  void (*chat_message_cmd)(const char *);
-  GroupCommandWithPassword create_group_cmd;
-  GroupCommandWithPassword enter_group_cmd;
-} CommandHandlers;
-
 void parse_command(char *input, CommandHandlers *handlers);
 
+/**
+ * @brief Handler de encerramento do cliente. Envia logout, fecha socket e
+ * encerra o loop.
+ */
 void handle_exit()
 {
   if (!running) return;
@@ -43,12 +33,26 @@ void handle_exit()
   printf("\nDisconnected.\n");
 }
 
+/**
+ * @brief Captura o sinal SIGINT (Ctrl+C) e delega a finalização para
+ * handle_exit.
+ *
+ * @param sig
+ */
 void sigint_handler(int sig)
 {
   (void)sig;
   handle_exit();
 }
 
+/**
+ * @brief Estabelece conexão com o servidor, configura sinais, inicia a thread
+ * de recepção e processa comandos da entrada padrão.
+ *
+ * @param argc
+ * @param argv
+ * @return
+ */
 int main(int argc, char *argv[])
 {
   if (argc < 2) {
@@ -65,7 +69,7 @@ int main(int argc, char *argv[])
 
   printf("Connecting to %s:%d...\n", server_ip, port);
   client_fd = connect_to_server(server_ip, port);
-  printf("Connected! Type 'help' for available commands.\n");
+  printf("Connected! Enter '/help' for available commands.\n");
 
   CommandHandlers handlers = {.register_cmd = send_register_command,
                               .login_cmd = send_login_command,
