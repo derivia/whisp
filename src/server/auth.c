@@ -1,11 +1,19 @@
 #define _POSIX_C_SOURCE 200890L
 #include "../../include/auth.h"
+#include <openssl/sha.h>
 #include <stdlib.h>
 #include <string.h>
 
 char *hash_password(const char *password)
 {
-  return strdup(password);
+  unsigned char hash[SHA256_DIGEST_LENGTH];
+  SHA256((const unsigned char *)password, strlen(password), hash);
+  char *output = malloc(SHA256_DIGEST_LENGTH * 2 + 1);
+  for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+    sprintf(output + (i * 2), "%02x", hash[i]);
+  }
+  output[SHA256_DIGEST_LENGTH * 2] = '\0';
+  return output;
 }
 
 bool register_user(Database *db, const char *username, const char *password)

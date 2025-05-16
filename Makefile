@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -I./include
-LDFLAGS = -lpthread -lsqlite3
+LDFLAGS = -lpthread -lsqlite3 -lcrypto -lssl
 
 SERVER_SRC = src/server/server.c \
              src/server/auth.c \
