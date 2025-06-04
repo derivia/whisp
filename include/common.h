@@ -17,15 +17,15 @@
 #include <time.h>
 #include <unistd.h>
 
-#define DEFAULT_PORT  6969
-#define MAX_BUFFER    4096
+#define DEFAULT_PORT     6969
+#define MAX_BUFFER       4096
 #define MAX_CONTENT_SIZE 4096
-#define MAX_MESSAGE 4096
-#define MAX_USERNAME  32
-#define MAX_PASSWORD  64
-#define MAX_GROUPNAME 32
-#define MAX_CLIENTS   100
-#define MAX_GROUPS    50
+#define MAX_MESSAGE      4096
+#define MAX_USERNAME     32
+#define MAX_PASSWORD     64
+#define MAX_GROUPNAME    32
+#define MAX_CLIENTS      100
+#define MAX_GROUPS       50
 
 typedef enum {
   CMD_REGISTER,
@@ -36,6 +36,9 @@ typedef enum {
   CMD_LEAVE,
   CMD_DELETE,
   CMD_MESSAGE,
+  CMD_DIRECT_MESSAGE,
+  CMD_LIST_GROUPS,
+  CMD_LIST_MEMBERS,
   CMD_SUCCESS,
   CMD_ERROR,
   CMD_NOTIFICATION
@@ -51,6 +54,7 @@ typedef struct {
 } Message;
 
 void error_exit(const char *message);
+
 int set_nonblocking(int sockfd);
 
 #endif

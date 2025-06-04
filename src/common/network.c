@@ -1,9 +1,10 @@
 #include "../../include/network.h"
+#include "../../include/common.h"
 
 /**
  * @brief Cria um socket TCP reutilizável para comunicação.
  *
- * @return O socket criado
+ * @return O descritor de arquivo do socket criado.
  */
 int create_socket(void)
 {
@@ -17,6 +18,13 @@ int create_socket(void)
   return sockfd;
 }
 
+/**
+ * @brief Conecta-se a um servidor remoto usando um endereço IP e porta.
+ *
+ * @param address O endereço IP do servidor (string).
+ * @param port A porta do servidor.
+ * @return O descritor de arquivo do socket conectado.
+ */
 int connect_to_server(const char *address, int port)
 {
   int sockfd = create_socket();
@@ -40,8 +48,8 @@ int connect_to_server(const char *address, int port)
  * @brief Configura um socket TCP para escuta em todas as interfaces na porta
  * especificada.
  *
- * @param port
- * @return
+ * @param port A porta em que o servidor irá escutar.
+ * @return O descritor de arquivo para o socket do servidor em escuta.
  */
 int setup_server(int port)
 {
@@ -64,8 +72,8 @@ int setup_server(int port)
 /**
  * @brief Envia uma struct Message pelo socket usando envio binário direto.
  *
- * @param sockfd
- * @param msg
+ * @param sockfd O descritor de arquivo do socket para enviar.
+ * @param msg Um ponteiro para a estrutura Message a ser enviada.
  */
 void send_message(int sockfd, const Message *msg)
 {
@@ -73,12 +81,13 @@ void send_message(int sockfd, const Message *msg)
 }
 
 /**
- * @brief Recebe dados do socket e preenche uma struct Message; trata não
- * bloqueio e erro.
+ * @brief Recebe dados do socket e preenche uma struct Message; trata modo
+ * não-bloqueio e erros.
  *
- * @param sockfd
- * @param msg
- * @return
+ * @param sockfd O descritor de arquivo do socket para receber.
+ * @param msg Um ponteiro para a estrutura Message a ser preenchida.
+ * @return O número de bytes recebidos, 0 se não há dados (modo
+ * não-bloqueante), ou -1 em caso de erro.
  */
 int receive_message(int sockfd, Message *msg)
 {

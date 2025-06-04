@@ -8,6 +8,7 @@
 ClientManager client_manager;
 GroupManager group_manager;
 Database database;
+
 void *client_handler(void *arg);
 
 typedef struct {
@@ -20,6 +21,12 @@ typedef struct {
  */
 volatile sig_atomic_t server_running = 1;
 
+/**
+ * @brief Handler de sinal para capturar SIGINT (Ctrl+C) e sinalizar o
+ * encerramento do servidor.
+ *
+ * @param sig O número do sinal recebido.
+ */
 void handle_signal(int sig)
 {
   (void)sig;
@@ -28,9 +35,10 @@ void handle_signal(int sig)
 }
 
 /**
- * @brief Busca pelo ip da rede local e o retorna.
+ * @brief Busca pelo IP da rede local e o retorna.
+ * Iterates through network interfaces to find a non-loopback IPv4 address.
  *
- * @return String do IP atual.
+ * @return Uma string com o IP local atual, ou NULL em caso de falha.
  */
 char *get_local_ip()
 {
@@ -44,6 +52,7 @@ char *get_local_ip()
 
   for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
     if (ifa->ifa_addr == NULL) continue;
+
     if (ifa->ifa_addr->sa_family == AF_INET &&
         strcmp(ifa->ifa_name, "lo") != 0) {
       getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST,
@@ -57,11 +66,11 @@ char *get_local_ip()
 }
 
 /**
- * @brief Configura o servidor com um ip e porta especificos.
+ * @brief Configura um socket TCP para escuta em um IP e porta específicos.
  *
- * @param port
- * @param ip_addr
- * @return File descriptor para o socket do servidor.
+ * @param port A porta em que o servidor irá escutar.
+ * @param ip_addr O endereço IP no qual o servidor irá se ligar.
+ * @return O descritor de arquivo para o socket do servidor.
  */
 int setup_server_with_ip(int port, const char *ip_addr)
 {
@@ -82,8 +91,9 @@ int setup_server_with_ip(int port, const char *ip_addr)
 
   address.sin_family = AF_INET;
   address.sin_port = htons(port);
+
   if (inet_pton(AF_INET, ip_addr, &address.sin_addr) <= 0) {
-    perror("Invalid address");
+    perror("Invalid address/Address not supported");
     close(server_fd);
     exit(EXIT_FAILURE);
   }
@@ -103,17 +113,23 @@ int setup_server_with_ip(int port, const char *ip_addr)
   return server_fd;
 }
 
+/**
+ * @brief Função principal do servidor Whisp.
+ * Inicializa o banco de dados, gerenciadores, configura o servidor e entra no
+ * loop de aceitação de clientes.
+ *
+ * @param argc Número de argumentos da linha de comando.
+ * @param argv Array de strings dos argumentos da linha de comando.
+ * @return 0 em caso de sucesso, 1 em caso de falha.
+ */
 int main(int argc, char *argv[])
 {
   int port = DEFAULT_PORT;
 
-  // Aceita uma porta caso o usuário passe, vai saber né.
   if (argc > 1) port = atoi(argv[1]);
 
-  // Faz com que o programa capture os SIGINTs de combinações de teclas como
-  // Ctrl-C, para que o server faça um espécie de graceful shutdown (ou apenas
-  // pare de falhar a saída como estava acontecendo).
   signal(SIGPIPE, SIG_IGN);
+
   signal(SIGINT, handle_signal);
 
   if (!init_database(&database, "whisp.db")) {
@@ -121,30 +137,20 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  // O servidor utiliza dois "managers", um para clientes e um para grupos.
-  // Basicamente cada um tem um array com um tamanho MAX (quantos grupos pode
-  // haver ao mesmo tempo) Quantos usuários e grupos atualmente existem e um
-  // mutex para uso de locks na escrita dos dois outros elementos (contagem e
-  // array).
   init_client_manager(&client_manager);
   init_group_manager(&group_manager);
 
-  // Procura o IP atual, para hospedar localmente apenas.
-  // (Tava tendo alguns problemas com as portas no Linux, acabou que era
-  // burrice minha mesmo).
   char *local_ip = get_local_ip();
   if (!local_ip || strlen(local_ip) == 0) {
     fprintf(stderr, "Failed to get local IP address\n");
-    return 1;
+
+    local_ip = "127.0.0.1";
+    printf("[SERVER] Using fallback IP: %s\n", local_ip);
   }
 
   int server_fd = setup_server_with_ip(port, local_ip);
   printf("Whisp server started on %s:%d\n", local_ip, port);
 
-  // Inicializa um file descriptor para o select e um timeval
-  // O file descriptor é usado para verificar se há alguma escrita atualmente
-  // E o timeval é usado para definir de quanto em quanto tempo a verificação
-  // acontece.
   fd_set read_fds;
   struct timeval timeout;
 
@@ -166,6 +172,7 @@ int main(int argc, char *argv[])
     if (FD_ISSET(server_fd, &read_fds)) {
       struct sockaddr_in client_addr;
       socklen_t client_addr_len = sizeof(client_addr);
+
       int client_fd =
           accept(server_fd, (struct sockaddr *)&client_addr, &client_addr_len);
       if (client_fd < 0) {
@@ -178,11 +185,17 @@ int main(int argc, char *argv[])
       printf("New connection from %s\n", client_ip);
 
       ClientArgs *client_args = malloc(sizeof(ClientArgs));
+      if (client_args == NULL) {
+        perror("Failed to allocate memory for client_args");
+        close(client_fd);
+        continue;
+      }
       client_args->sockfd = client_fd;
 
       pthread_t thread_id;
+
       if (pthread_create(&thread_id, NULL, client_handler, client_args) != 0) {
-        perror("Failed to create thread");
+        perror("Failed to create thread for client");
         close(client_fd);
         free(client_args);
         continue;
@@ -192,7 +205,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  // Tenta uma espécie de graceful shutdown.
   close(server_fd);
   close_database(&database);
   printf("[SERVER] Shutdown complete.\n");
