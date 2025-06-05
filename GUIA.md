@@ -67,12 +67,6 @@
 2. Servidor chama `authenticate_user()`.
 3. Se correto, `authenticated = true` no struct `User`.
 
-## Observações
-
-- O hash de senhas não está implementado (apenas `strdup`).
-- SQL injection é possível atualmente (uso direto de `snprintf`).
-- O código é feito para rodar localmente, com poucos problemas de segurança.
-
 ## Diagrama do funcionamento
 
 ```mermaid
