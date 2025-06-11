@@ -312,6 +312,14 @@ void handle_delete_group(int sockfd, const Message *msg)
     return;
   }
 
+  if (strcmp(group->creator, user->username) != 0) {
+    response.type = CMD_ERROR;
+    strncpy(response.message, "Failed to delete group: not owner",
+            MAX_BUFFER - 1);
+    send_message(sockfd, &response);
+    return;
+  }
+
   Message notification;
   memset(&notification, 0, sizeof(Message));
   notification.type = CMD_NOTIFICATION;
@@ -333,7 +341,8 @@ void handle_delete_group(int sockfd, const Message *msg)
     strncpy(response.message, "Group deleted successfully", MAX_BUFFER - 1);
   } else {
     response.type = CMD_ERROR;
-    strncpy(response.message, "Failed to delete group: not owner",
+    strncpy(response.message,
+            "Failed to delete group: an internal error occurred",
             MAX_BUFFER - 1);
   }
 
