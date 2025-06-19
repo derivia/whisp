@@ -512,7 +512,7 @@ void handle_list_groups(int sockfd, const Message *msg)
           "\n- %s (Creator: %s, Members: %d/%d)", group_manager.groups[i].name,
           group_manager.groups[i].creator,
           group_manager.groups[i].member_count, MAX_CLIENTS);
-      if (current_len >= sizeof(group_list) - 1) break;
+      if ((unsigned long)current_len >= sizeof(group_list) - 1) break;
     }
     strncpy(response.message, group_list, MAX_BUFFER - 1);
   }
@@ -574,7 +574,7 @@ void handle_list_members(int sockfd, const Message *msg)
                  (strcmp(group->members[i]->username, group->creator) == 0)
                      ? "(Creator)"
                      : "");
-    if (current_len >= sizeof(member_list) - 1) break;
+    if ((unsigned long)current_len >= sizeof(member_list) - 1) break;
   }
   pthread_mutex_unlock(&group->mutex);
 
